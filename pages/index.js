@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { Button } from "../components/ui/button";
 
+// const { useState, useEffect } = require("react");
+// const { ethers } = require ("ethers");
+// const { Button } = require("../components/ui/button");
+
 export default function SDUSDApp() {
   const [account, setAccount] = useState(null);
   const [provider, setProvider] = useState(null);
