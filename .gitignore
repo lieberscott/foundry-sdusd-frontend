@@ -17,3 +17,5 @@ docs/
 artifacts
 old_src
 node_modules
+
+.next/

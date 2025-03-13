@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { Button } from "../components/ui/button";
+import { LineChart } from "../components/ui/chart";
 
 export default function SDUSDApp() {
   const [account, setAccount] = useState(null);
@@ -2201,7 +2202,7 @@ export default function SDUSDApp() {
   return (
     <div className="p-4 max-w-lg mx-auto">
       <h1 className="text-2xl font-bold">SDUSD DApp</h1>
-      {!account ? (
+      { account ? (
         <Button onClick={connectWallet}>Connect MetaMask</Button>
       ) : (
         <div>
@@ -2216,6 +2217,7 @@ export default function SDUSDApp() {
           <Button onClick={() => mintSDUSD(document.getElementById("mintAmount").value)}>Mint SDUSD</Button>
 
           <Button onClick={mintNFT} className="mt-4">Mint NFT (0.1 ETH)</Button>
+          <LineChart />
         </div>
       )}
     </div>
