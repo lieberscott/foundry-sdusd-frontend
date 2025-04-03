@@ -1,17 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Line } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from "chart.js";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-export function LineChart() {
+export function LineChart(props) {
+
+    const { ethPrice, ethBalanceOfSdusdContract, supplyOfSdusd } = props;
+
     const [params, setParams] = useState({
-        x: 1000,
-        d: 1.5,
-        u: 2000000,
-        p: 2000,
-        b: 1000
+        sdusdBeingRedeemed: 1000,
+        degredationThreshold: 1.5,
+        sdusdTotalSupply: 500000,
+        priceOfEth: 2000,
+        ethInSdusdContract: 1000
     });
+    const [userAdjustedCollateralRatio, setUserAdjustedCollateralRatio] = useState(1);
+
+    useEffect(() => {
+      const userRedemptionRate = calculateR(params.sdusdBeingRedeemed, params.degredationThreshold, params.sdusdTotalSupply, params.priceOfEth, params.ethInSdusdContract);
+      const userCollateralRatio = calculateCollateralRatio(params.sdusdBeingRedeemed, params.sdusdTotalSupply, params.priceOfEth, params.ethInSdusdContract, userRedemptionRate);
+      setUserAdjustedCollateralRatio(userCollateralRatio.toFixed(3));
+    }, [params])
 
     const calculateR = (x, d, u, p, b) => {
         const numerator = (-x) + Math.sqrt((x * x) - 4 * d * (u - x) * (-p * b));
@@ -27,20 +37,28 @@ export function LineChart() {
       return numerator / denominator;
     }
 
-    // const xValues = Array.from({ length: 10 }, (_, i) => i * 100);
-    // const rValues = xValues.map(x => calculateR(x, params.d, params.u, params.p, params.b));
-    // const xAxisValues = xValues.map((x, i) => ((params.p * params.b) - (x * rValues[i])) / (params.u - x));
+    const redemptionParams = {
+      sdusdBeingRedeemed: 1000,
+      degredationThreshold: 1.5,
+      sdusdTotalSupply: 2000000,
+      priceOfEth: 2000,
+      ethInSdusdContract: 1000
+    }
 
     const pValues = Array.from({ length: 40 }, (_, i) => i * 100);
-    const rValues = pValues.map(p => calculateR(params.x, params.d, params.u, p, params.b));
-    const xAxisValues = rValues.map((r, i) => parseFloat(calculateCollateralRatio(params.x, params.u, pValues[i], params.b, r)).toFixed(2));
+    const redemptionRates = pValues.map(p => calculateR(redemptionParams.sdusdBeingRedeemed, redemptionParams.degredationThreshold, redemptionParams.sdusdTotalSupply, p, redemptionParams.ethInSdusdContract));
+    const xAxisValues = redemptionRates.map((r, i) => parseFloat(calculateCollateralRatio(redemptionParams.sdusdBeingRedeemed, redemptionParams.sdusdTotalSupply, pValues[i], redemptionParams.ethInSdusdContract, r)).toFixed(2));
+
+
+    const currentCollateralRatio = calculateCollateralRatio(0, supplyOfSdusd == 0 ? 1 : supplyOfSdusd, ethPrice, parseFloat(ethBalanceOfSdusdContract), 0);
+
 
     const data = {
         labels: xAxisValues,
         datasets: [
             {
                 label: "r Value",
-                data: rValues,
+                data: redemptionRates,
                 borderColor: "#007bff",
                 backgroundColor: "rgba(0, 123, 255, 0.5)",
                 fill: false,
@@ -60,13 +78,13 @@ export function LineChart() {
               mode: 'nearest',
               callbacks: {
                 label: function (context) {
-                  let xLabel = `X: ${context.label}`;
-                  let yLabel = `R: ${context.raw.toFixed(3)}`;
-                  let dLabel = `d: ${params.d}`;
-                  let uLabel = `u: ${params.u}`;
-                  let pLabel = `p: ${params.p}`;
-                  let bLabel = `b: ${params.b}`;
-                  return [xLabel, yLabel, dLabel, uLabel, pLabel, bLabel];
+                  let xLabel = `Collateral ratio: ${context.label}`;
+                  let yLabel = `Redemption rate: ${(context.raw * 100).toFixed(3) + "%"}`;
+                  // let dLabel = `d: ${params.degredationThreshold}`;
+                  // let uLabel = `u: ${params.sdusdTotalSupply}`;
+                  // let pLabel = `Eth price: $${params.priceOfEth}`;
+                  // let bLabel = `Eth balance in SDUSD contract: ${params.ethInSdusdContract}`;
+                  return [xLabel, yLabel];
                 },
               },
           },
@@ -105,9 +123,22 @@ export function LineChart() {
 
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <h2>Line Chart of r</h2>
+            <h2>Redemption rate of SDUSD based on collateral ratio</h2>
+            <div>
+              SDUSD <b>may depeg by design during times of extreme market drawdowns</b>.<br/>
+              This occurs when the ETH amount in the SDUSD contract falls below a given threshold in relation to the amount of SDUSD minted. As deployed, this threshold is 150%.<br/>
+              However:<br/>
+              <ul>If the redemption rate falls below 1:1, it means the price of ETH has dropped massively, at least 60%+, and usually much higher (the exact percentage drop depends on how much SDUSD is minted)</ul>
+              <ul>If a depeg occurs, on the way down, SDUSD will lose value <b>slower</b> than ETH</ul>
+              <ul>Check the chart below. It shows the redemption rate given certain values.</ul>
+            </div>
+            <p>Collateral ratio is: (dollar value of ETH in SDUSD contract) / (SDUSD minted)</p>
+            <p><b>Current collateral ratio: {currentCollateralRatio}</b></p>
             <Line data={data} options={options} />
             <div>
+              <p>
+                Adjust parameters:
+              </p>
                 {Object.keys(params).map((key) => (
                     <div key={key}>
                         <label>{key}: </label>
@@ -119,6 +150,7 @@ export function LineChart() {
                         />
                     </div>
                 ))}
+                <p>User-adjusted collateral Ratio: {userAdjustedCollateralRatio}</p>
             </div>
         </div>
     );

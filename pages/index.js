@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { Button } from "../components/ui/button";
 import { LineChart } from "../components/ui/chart";
+import { ViewNft } from "../components/ui/viewNft";
 
 export default function SDUSDApp() {
   const [account, setAccount] = useState(null);
@@ -9,8 +10,10 @@ export default function SDUSDApp() {
   const [signer, setSigner] = useState(null);
   const [sdusdContract, setSDUSDContract] = useState(null);
   const [sdnftContract, setSDNFTContract] = useState(null);
-  const [ethBalance, setEthBalance] = useState("0");
+  const [ethBalanceOfUser, setEthBalanceOfUser] = useState("0");
   const [ethBalanceOfSdusdContract, setEthBalanceOfSdusdContract] = useState("0");
+  const [supplyOfSdusd, setSupplyOfSdusd] = useState(1);
+  const [ethPrice, setEthPrice] = useState(1);
   const [sdusdMintableInEth, setSDUSDMintableInEth] = useState("0");
   const [sdusdMintable, setSDUSDMintable] = useState("0");
   const [nftSupply, setNFTSupply] = useState("0");
@@ -2147,15 +2150,18 @@ export default function SDUSDApp() {
 
     try {
       const balance = await provider.getBalance(account); // Correct way to get ETH balance
-      setEthBalance(ethers.formatEther(balance));
+      setEthBalanceOfUser(ethers.formatEther(balance));
 
   
       if (sdusdContract) {
         const ethBalanceOfSdusdContract = await provider.getBalance(sdusdContract.target);
         const maxMintable = await sdusdContract.calculateMaxMintable(ethBalanceOfSdusdContract);
+        const sdusdSupply = await sdusdContract.totalSupply();
         const priceOfEth = parseInt(ethers.formatUnits(maxMintable[1], 18));
         const maxMintableInEthInt = parseFloat(ethers.formatUnits(maxMintable[0], 18))
         const maxSdusd = priceOfEth * maxMintableInEthInt;
+        setSupplyOfSdusd(sdusdSupply);
+        setEthPrice(priceOfEth);
         setEthBalanceOfSdusdContract(ethers.formatUnits(ethBalanceOfSdusdContract, 18));
         setSDUSDMintableInEth(ethers.formatUnits(maxMintable[0], 18));
         setSDUSDMintable(maxSdusd);
@@ -2194,30 +2200,57 @@ export default function SDUSDApp() {
 
   const mintNFT = async () => {
     if (!sdnftContract || !signer) return;
-    const tx = await sdnftContract.buyNft({ value: ethers.parseEther("0.1") });
-    await tx.wait();
-    updateBalances(signer);
+    try {
+      const tx = await sdnftContract.buyNft({ value: ethers.parseEther("0.1") });
+      await tx.wait();
+      updateBalances(signer);
+    }
+    catch (error) {
+      if (error.code === 4001) {
+        // User rejected the transaction
+        console.log('Transaction rejected by the user');
+      } else {
+        // Handle other errors
+        console.error('Transaction failed:', error);
+      }
+    }
   };
 
   return (
     <div className="p-4 max-w-lg mx-auto">
       <h1 className="text-2xl font-bold">SDUSD DApp</h1>
-      { account ? (
+      { !account ? (
         <Button onClick={connectWallet}>Connect MetaMask</Button>
       ) : (
         <div>
-          <p>Connected: {account}</p>
-          <p>ETH Balance of user: {ethBalance} ETH</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', maxWidth: "800px" }}>
+            <div style={{ flex: 1, paddingRight: '20px' }}>
+              <p><b>Connected:</b> {account}</p>
+              <p>ETH Balance of user: {ethBalanceOfUser} ETH</p>
+              <h3>About the Project</h3>
+              <p>
+                  Simple Decentralized USD (SDUSD) is a 100% fully decentralized stablecoin/NFT/DAO project. 
+                  A decentralized economy needs a decentralized stablecoin. Click (here) for the full whitepaper.
+              </p>
+            </div>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+              <img src="https://scottlieber.wordpress.com/wp-content/uploads/2025/04/sdusd_graphic-1.png" alt="Graphic illustration" style={{ maxWidth: '100%', height: 'auto' }} />
+            </div>
+          </div>
+
+          <h3>Mint SDUSD</h3>
           <p>ETH Balance of SDUSD contract: {ethBalanceOfSdusdContract} ETH</p>
           <p>Max SDUSD Mintable (in ETH): {sdusdMintableInEth}</p>
           <p>Max SDUSD Mintable (in SDUSD): {sdusdMintable}</p>
-          <p>NFTs Minted: {nftSupply}</p>
-
           <input type="text" placeholder="ETH to Mint SDUSD" id="mintAmount" className="border p-2 w-full" />
           <Button onClick={() => mintSDUSD(document.getElementById("mintAmount").value)}>Mint SDUSD</Button>
 
+          <h3>Mint SDNFT</h3>
+          <p>NFTs Minted: {nftSupply}</p>
           <Button onClick={mintNFT} className="mt-4">Mint NFT (0.1 ETH)</Button>
-          <LineChart />
+
+          <LineChart ethPrice={ethPrice} supplyOfSdusd={supplyOfSdusd} ethBalanceOfSdusdContract={ ethBalanceOfSdusdContract } />
+          <ViewNft sdnftContract={ sdnftContract } />
         </div>
       )}
     </div>
