@@ -3,6 +3,7 @@ import { ethers } from "ethers";
 import { Button } from "../components/ui/button";
 import { LineChart } from "../components/ui/chart";
 import { ViewNft } from "../components/ui/viewNft";
+import Link from 'next/link';
 
 export default function SDUSDApp() {
   const [account, setAccount] = useState(null);
@@ -10,7 +11,6 @@ export default function SDUSDApp() {
   const [signer, setSigner] = useState(null);
   const [sdusdContract, setSDUSDContract] = useState(null);
   const [sdnftContract, setSDNFTContract] = useState(null);
-  const [ethBalanceOfUser, setEthBalanceOfUser] = useState("0");
   const [ethBalanceOfSdusdContract, setEthBalanceOfSdusdContract] = useState("0");
   const [supplyOfSdusd, setSupplyOfSdusd] = useState(1);
   const [ethPrice, setEthPrice] = useState(1);
@@ -2149,9 +2149,6 @@ export default function SDUSDApp() {
     if (!provider || !account) return;
 
     try {
-      const balance = await provider.getBalance(account); // Correct way to get ETH balance
-      setEthBalanceOfUser(ethers.formatEther(balance));
-
   
       if (sdusdContract) {
         const ethBalanceOfSdusdContract = await provider.getBalance(sdusdContract.target);
@@ -2174,6 +2171,14 @@ export default function SDUSDApp() {
     } catch (error) {
       console.error("Error fetching balances:", error);
     }
+  };
+
+  const disconnectWallet = () => {
+    setWalletAddress('');
+  };
+
+  const shortenAddress = (address) => {
+    return address.slice(0, 6) + '...' + address.slice(-4);
   };
   
 
@@ -2219,40 +2224,67 @@ export default function SDUSDApp() {
   return (
     <div className="p-4 max-w-lg mx-auto">
       <h1 className="text-2xl font-bold">SDUSD DApp</h1>
-      { !account ? (
-        <Button onClick={connectWallet}>Connect MetaMask</Button>
-      ) : (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', maxWidth: "800px" }}>
-            <div style={{ flex: 1, paddingRight: '20px' }}>
-              <p><b>Connected:</b> {account}</p>
-              <p>ETH Balance of user: {ethBalanceOfUser} ETH</p>
-              <h3>About the Project</h3>
-              <p>
-                  Simple Decentralized USD (SDUSD) is a 100% fully decentralized stablecoin/NFT/DAO project. 
-                  A decentralized economy needs a decentralized stablecoin. Click (here) for the full whitepaper.
-              </p>
+          <div style={{
+            position: 'absolute',
+            top: 20,
+            right: 20
+          }}>
+            <button
+              onClick={connectWallet}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '8px',
+                backgroundColor: '#111',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              {account ? shortenAddress(account) : 'Connect'}
+            </button>
+          </div>
+          <div style={{ justifyContent: 'space-between', marginBottom: '20px', maxWidth: "800px" }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+              <img
+                src="https://scottlieber.wordpress.com/wp-content/uploads/2025/04/sdusd_graphic-1.png"
+                alt="Graphic illustration"
+                style={{ maxWidth: '100%', height: 'auto', width: '45%' }}
+              />
+              <img
+                src="https://scottlieber.wordpress.com/wp-content/uploads/2025/04/sdusd_graphic-1.png"
+                alt="Graphic illustration"
+                style={{ maxWidth: '100%', height: 'auto', width: '45%' }}
+              />
             </div>
-            <div style={{ flex: 1, textAlign: 'right' }}>
-              <img src="https://scottlieber.wordpress.com/wp-content/uploads/2025/04/sdusd_graphic-1.png" alt="Graphic illustration" style={{ maxWidth: '100%', height: 'auto' }} />
+            <div style={{ flex: 1, paddingRight: '20px' }}>
+              <h3>A 100% decentralized stablecoin, DAO, and NFT project</h3>
+              <p>
+                  Click <Link href="/whitepaper">here</Link> for the full whitepaper.
+              </p>
             </div>
           </div>
 
-          <h3>Mint SDUSD</h3>
-          <p>ETH Balance of SDUSD contract: {ethBalanceOfSdusdContract} ETH</p>
+          <h3>SDUSD</h3>
+          <p>{ethBalanceOfSdusdContract} ETH in contract</p>
           <p>Max SDUSD Mintable (in ETH): {sdusdMintableInEth}</p>
           <p>Max SDUSD Mintable (in SDUSD): {sdusdMintable}</p>
-          <input type="text" placeholder="ETH to Mint SDUSD" id="mintAmount" className="border p-2 w-full" />
+          <p>I want to mint <input type="text" placeholder="0.01" id="mintAmount" className="border p-2 w-full" /> ETH worth of SDUSD</p>
           <Button onClick={() => mintSDUSD(document.getElementById("mintAmount").value)}>Mint SDUSD</Button>
 
-          <h3>Mint SDNFT</h3>
-          <p>NFTs Minted: {nftSupply}</p>
+          <h3>SDNFT</h3>
+          <p>Next NFT mint number: {nftSupply}</p>
           <Button onClick={mintNFT} className="mt-4">Mint NFT (0.1 ETH)</Button>
+
+          <h3>To vote in the DAO, click (here)</h3>
+          <p>Please note: SDUSD depegs by design during extreme market conditions!</p>
+          <p>Click <Link href="/redemption">here</Link> to see how the redemption rate is calculated.</p>
+          <p>Current redemption rate: </p>
 
           <LineChart ethPrice={ethPrice} supplyOfSdusd={supplyOfSdusd} ethBalanceOfSdusdContract={ ethBalanceOfSdusdContract } />
           <ViewNft sdnftContract={ sdnftContract } />
         </div>
-      )}
     </div>
   );
 }
