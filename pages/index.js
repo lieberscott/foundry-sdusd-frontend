@@ -2200,7 +2200,7 @@ export default function SDUSDApp() {
 
     try {
       const gasEstimate = await sdusdContract.mintSDUSD.estimateGas({ value: ethers.parseEther(ethAmount) });
-      const tx = await contract.mintSDUSD({ value: ethers.parseEther(ethAmount), gasLimit: gasEstimate });
+      const tx = await sdusdContract.mintSDUSD({ value: ethers.parseEther(ethAmount), gasLimit: gasEstimate });
       await tx.wait();
       loadContractData(wallet);
     } catch (error) {
@@ -2208,6 +2208,21 @@ export default function SDUSDApp() {
       alert("Transaction failed. Check console for details.");
     }
   };
+
+
+  const redeemSdusdForEth = async (amount) => {
+    if (!sdusdContract || !signer) return alert("Contract not loaded!");
+
+    try {
+      const gasEstimate = await sdusdContract.redeemSdusdForEth.estimateGas({ value: ethers.parseUnits(amount, 18) });
+      const tx = await sdusdContract.redeemSdusdForEth({ value: ethers.parseUnits(amount, 18), gasLimit: gasEstimate });
+      await tx.wait();
+      loadContractData(wallet);
+    } catch (error) {
+      console.error("Redemption failed:", error);
+      alert("Transaction failed. Check console for details.");
+    }
+  }
 
   const switchConversion = () => {
     setShowMintAmountInEth(prev => !prev);
@@ -2286,6 +2301,10 @@ export default function SDUSDApp() {
           <Button onClick={() => mintSDUSD(document.getElementById("mintAmountInEth").value)}>Mint SDUSD</Button></span>
           : <span><p>I want to mint $<input type="text" placeholder="10" id="mintAmountInSdusd" className="border p-2 w-full" /> of SDUSD <span onClick={ switchConversion }>(switch to ETH)</span></p>
           <Button onClick={() => mintSDUSD(document.getElementById("mintAmountInSdusd").value)}>Mint SDUSD</Button></span> }
+
+          <h5>Or redeem SDUSD for ETH</h5>
+          <p>I want to redeem <input type="text" placeholder="10" id="redemptionAmountInSDUSD" className="border p-2 w-full" /> SDUSD for ETH</p>
+          <Button onClick={() => redeemSdusdForEth(document.getElementById("redemptionAmountInSDUSD").value)}>Redeem SDUSD</Button>
 
           <h3>SDNFT</h3>
           <p>Next NFT mint number: {nftSupply}</p>
