@@ -129,7 +129,7 @@ export default function Home() {
               className="border p-1"
             >
               <option value="changeMintingThreshold">Change Minting Threshold</option>
-              <option value="changeDegeadationThreshold">Change Degeadation Threshold</option>
+              <option value="changeDegradationThreshold">Change Degeadation Threshold</option>
             </select>
           </div>
           <input

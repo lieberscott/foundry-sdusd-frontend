@@ -4,7 +4,9 @@ export function ViewNft(props) {
 
     const { sdnftContract } = props;
 
-    const [index, setIndex] = useState(-1);
+    console.log("Sdnft contract : ", sdnftContract);
+
+    const [index, setIndex] = useState(0);
     const [nftText, setNftText] = useState("");
 
 
@@ -19,7 +21,10 @@ export function ViewNft(props) {
     }
 
     const viewNft = async (index) => {
+      console.log("viewNft")
       if (!sdnftContract) return;
+
+      console.log("after initial check")
 
       try {
         const nftRawText = await sdnftContract.tokenURI(index);
@@ -34,6 +39,7 @@ export function ViewNft(props) {
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: "80px" }}>
             <h2>View NFT</h2>
+            <p>Connect wallet to view</p>
             <div>
                 <div>
                   <label>Index No.: </label>

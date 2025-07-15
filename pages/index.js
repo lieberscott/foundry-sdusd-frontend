@@ -17,6 +17,7 @@ export default function SDUSDApp() {
   const [sdusdMintableInEth, setSDUSDMintableInEth] = useState("0");
   const [sdusdMintable, setSDUSDMintable] = useState("0");
   const [nftSupply, setNFTSupply] = useState("0");
+  const [showMintAmountInEth, setShowMintAmountInEth] = useState(true);
 
   const SDUSD_CONTRACT_ADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
   const SDNFT_CONTRACT_ADDRESS = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9";
@@ -673,7 +674,7 @@ export default function SDUSDApp() {
           "type": "uint256"
         }
       ],
-      "name": "changeDegeadationThreshold",
+      "name": "changeDegradationThreshold",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -2174,7 +2175,7 @@ export default function SDUSDApp() {
   };
 
   const disconnectWallet = () => {
-    setWalletAddress('');
+    setAccount('');
   };
 
   const shortenAddress = (address) => {
@@ -2182,7 +2183,7 @@ export default function SDUSDApp() {
   };
   
 
-  const mintSDUSD = async (ethAmount) => {
+  const mintSDUSD = async (amount) => {
     // const adjustedBalance = await sdusdContract.provider.getBalance(sdusdContract.address);
     // const maxMintable = await sdusdContract.calculateMaxMintable(ethers.parseEther(ethAmount));
     // const maxMintableText = ethers.formatUnits(maxMintable[0], 18);
@@ -2190,6 +2191,13 @@ export default function SDUSDApp() {
     // alert("Max Mintable:", JSON.stringify(maxMintableText));
 
     if (!sdusdContract || !signer) return alert("Contract not loaded!");
+
+    let ethAmount = amount;
+
+    if (!showMintAmountInEth) {
+      ethAmount = amount / ethPrice;
+    }
+
     try {
       const gasEstimate = await sdusdContract.mintSDUSD.estimateGas({ value: ethers.parseEther(ethAmount) });
       const tx = await contract.mintSDUSD({ value: ethers.parseEther(ethAmount), gasLimit: gasEstimate });
@@ -2200,6 +2208,10 @@ export default function SDUSDApp() {
       alert("Transaction failed. Check console for details.");
     }
   };
+
+  const switchConversion = () => {
+    setShowMintAmountInEth(prev => !prev);
+  }
   
   
 
@@ -2231,7 +2243,7 @@ export default function SDUSDApp() {
             right: 20
           }}>
             <button
-              onClick={connectWallet}
+              onClick={ account ? disconnectWallet : connectWallet}
               style={{
                 padding: '10px 16px',
                 borderRadius: '8px',
@@ -2270,20 +2282,21 @@ export default function SDUSDApp() {
           <p>{ethBalanceOfSdusdContract} ETH in contract</p>
           <p>Max SDUSD Mintable (in ETH): {sdusdMintableInEth}</p>
           <p>Max SDUSD Mintable (in SDUSD): {sdusdMintable}</p>
-          <p>I want to mint <input type="text" placeholder="0.01" id="mintAmount" className="border p-2 w-full" /> ETH worth of SDUSD</p>
-          <Button onClick={() => mintSDUSD(document.getElementById("mintAmount").value)}>Mint SDUSD</Button>
+          { showMintAmountInEth ? <span><p>I want to mint <input type="text" placeholder="0.01" id="mintAmountInEth" className="border p-2 w-full" /> ETH worth of SDUSD <span onClick={ switchConversion }>(switch to SDUSD)</span></p>
+          <Button onClick={() => mintSDUSD(document.getElementById("mintAmountInEth").value)}>Mint SDUSD</Button></span>
+          : <span><p>I want to mint $<input type="text" placeholder="10" id="mintAmountInSdusd" className="border p-2 w-full" /> of SDUSD <span onClick={ switchConversion }>(switch to ETH)</span></p>
+          <Button onClick={() => mintSDUSD(document.getElementById("mintAmountInSdusd").value)}>Mint SDUSD</Button></span> }
 
           <h3>SDNFT</h3>
           <p>Next NFT mint number: {nftSupply}</p>
           <Button onClick={mintNFT} className="mt-4">Mint NFT (0.1 ETH)</Button>
+          <ViewNft sdnftContract={ sdnftContract } />
 
-          <h3>To vote in the DAO, click (here)</h3>
+          <h3>To vote in the DAO, click <Link href="/dao">here</Link></h3>
           <p>Please note: SDUSD depegs by design during extreme market conditions!</p>
-          <p>Click <Link href="/redemption">here</Link> to see how the redemption rate is calculated.</p>
+          <p>Click <Link href={{pathname: "/redemption", query: {ethPrice, ethBalanceOfSdusdContract, supplyOfSdusd }}}>here</Link> to see how the redemption rate is calculated.</p>
           <p>Current redemption rate: </p>
 
-          <LineChart ethPrice={ethPrice} supplyOfSdusd={supplyOfSdusd} ethBalanceOfSdusdContract={ ethBalanceOfSdusdContract } />
-          <ViewNft sdnftContract={ sdnftContract } />
         </div>
     </div>
   );
