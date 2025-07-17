@@ -12,6 +12,7 @@ export default function SDUSDApp() {
   const [sdusdContract, setSDUSDContract] = useState(null);
   const [sdnftContract, setSDNFTContract] = useState(null);
   const [ethBalanceOfSdusdContract, setEthBalanceOfSdusdContract] = useState("0");
+  const [ethBalanceOfUser, setEthBalanceOfUser] = useState("0");
   const [supplyOfSdusd, setSupplyOfSdusd] = useState(1);
   const [ethPrice, setEthPrice] = useState(1);
   const [sdusdMintableInEth, setSDUSDMintableInEth] = useState("0");
@@ -674,7 +675,7 @@ export default function SDUSDApp() {
           "type": "uint256"
         }
       ],
-      "name": "changeDegradationThreshold",
+      "name": "changeDegredationThreshold",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -2125,7 +2126,7 @@ export default function SDUSDApp() {
   }, []);
 
   useEffect(() => {
-    updateBalances(account);
+    updateBalances();
   }, [account]);
 
   const connectWallet = async () => {
@@ -2146,18 +2147,20 @@ export default function SDUSDApp() {
   };
   
 
-  const updateBalances = async (account) => {
-    if (!provider || !account) return;
+  const updateBalances = async () => {
+    if (!provider) return;
 
     try {
   
       if (sdusdContract) {
         const ethBalanceOfSdusdContract = await provider.getBalance(sdusdContract.target);
+        const ethBalanceOfUser = await provider.getBalance(signer);
         const maxMintable = await sdusdContract.calculateMaxMintable(ethBalanceOfSdusdContract);
         const sdusdSupply = await sdusdContract.totalSupply();
         const priceOfEth = parseInt(ethers.formatUnits(maxMintable[1], 18));
         const maxMintableInEthInt = parseFloat(ethers.formatUnits(maxMintable[0], 18))
         const maxSdusd = priceOfEth * maxMintableInEthInt;
+        setEthBalanceOfUser(ethers.formatUnits(ethBalanceOfUser, 18));
         setSupplyOfSdusd(sdusdSupply);
         setEthPrice(priceOfEth);
         setEthBalanceOfSdusdContract(ethers.formatUnits(ethBalanceOfSdusdContract, 18));
@@ -2181,6 +2184,7 @@ export default function SDUSDApp() {
   const shortenAddress = (address) => {
     return address.slice(0, 6) + '...' + address.slice(-4);
   };
+
   
 
   const mintSDUSD = async (amount) => {
@@ -2202,7 +2206,7 @@ export default function SDUSDApp() {
       const gasEstimate = await sdusdContract.mintSDUSD.estimateGas({ value: ethers.parseEther(ethAmount) });
       const tx = await sdusdContract.mintSDUSD({ value: ethers.parseEther(ethAmount), gasLimit: gasEstimate });
       await tx.wait();
-      loadContractData(wallet);
+      updateBalances();
     } catch (error) {
       console.error("Minting failed:", error);
       alert("Transaction failed. Check console for details.");
@@ -2212,12 +2216,13 @@ export default function SDUSDApp() {
 
   const redeemSdusdForEth = async (amount) => {
     if (!sdusdContract || !signer) return alert("Contract not loaded!");
-
+    console.log("amount :", amount);
     try {
-      const gasEstimate = await sdusdContract.redeemSdusdForEth.estimateGas({ value: ethers.parseUnits(amount, 18) });
-      const tx = await sdusdContract.redeemSdusdForEth({ value: ethers.parseUnits(amount, 18), gasLimit: gasEstimate });
+      const parsedAmount = ethers.parseUnits(amount, 18);
+      const gasEstimate = await sdusdContract.redeemSdusdForEth.estimateGas(parsedAmount);
+      const tx = await sdusdContract.redeemSdusdForEth(parsedAmount, { gasLimit: gasEstimate });
       await tx.wait();
-      loadContractData(wallet);
+      updateBalances();
     } catch (error) {
       console.error("Redemption failed:", error);
       alert("Transaction failed. Check console for details.");
@@ -2235,7 +2240,7 @@ export default function SDUSDApp() {
     try {
       const tx = await sdnftContract.buyNft({ value: ethers.parseEther("0.1") });
       await tx.wait();
-      updateBalances(signer);
+      updateBalances();
     }
     catch (error) {
       if (error.code === 4001) {
@@ -2297,6 +2302,7 @@ export default function SDUSDApp() {
           <p>{ethBalanceOfSdusdContract} ETH in contract</p>
           <p>Max SDUSD Mintable (in ETH): {sdusdMintableInEth}</p>
           <p>Max SDUSD Mintable (in SDUSD): {sdusdMintable}</p>
+          <p>User ETH balance: {ethBalanceOfUser}</p>
           { showMintAmountInEth ? <span><p>I want to mint <input type="text" placeholder="0.01" id="mintAmountInEth" className="border p-2 w-full" /> ETH worth of SDUSD <span onClick={ switchConversion }>(switch to SDUSD)</span></p>
           <Button onClick={() => mintSDUSD(document.getElementById("mintAmountInEth").value)}>Mint SDUSD</Button></span>
           : <span><p>I want to mint $<input type="text" placeholder="10" id="mintAmountInSdusd" className="border p-2 w-full" /> of SDUSD <span onClick={ switchConversion }>(switch to ETH)</span></p>

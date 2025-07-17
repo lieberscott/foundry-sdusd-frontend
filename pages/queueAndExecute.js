@@ -17,7 +17,7 @@ export default function Home() {
   const [signer, setSigner] = useState(null)
   const [address, setAddress] = useState(null)
   const [mintingThreshold, setMintingThreshold] = useState('')
-  const [degeadationThreshold, setDegeadationThreshold] = useState('')
+  const [degredationThreshold, setDegeadationThreshold] = useState('')
   const [votingPower, setVotingPower] = useState(null)
   const [proposals, setProposals] = useState([])
   const [proposalId, setProposalId] = useState(null)
@@ -45,7 +45,7 @@ export default function Home() {
     const sdusd = new ethers.Contract(SDUSD_ADDRESS, SDUSD_ABI, signer)
     const governor = new ethers.Contract(GOVERNOR_ADDRESS, GOVERNOR_ABI, signer)
     const threshold = await sdusd.mintingThreshold()
-    const deg = await sdusd.degeadationThreshold()
+    const deg = await sdusd.degredationThreshold()
     const votes = await governor.getVotes(await signer.getAddress())
     setMintingThreshold(threshold.toString())
     setDegeadationThreshold(deg.toString())
@@ -129,7 +129,7 @@ export default function Home() {
               className="border p-1"
             >
               <option value="changeMintingThreshold">Change Minting Threshold</option>
-              <option value="changeDegradationThreshold">Change Degeadation Threshold</option>
+              <option value="changeDegredationThreshold">Change Degeadation Threshold</option>
             </select>
           </div>
           <input

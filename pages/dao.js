@@ -15,7 +15,7 @@ export default function Dao() {
   const [signer, setSigner] = useState(null)
   const [address, setAddress] = useState(null)
   const [mintingThreshold, setMintingThreshold] = useState('')
-  const [degeadationThreshold, setDegeadationThreshold] = useState('')
+  const [degredationThreshold, setDegeadationThreshold] = useState('')
   const [votingPower, setVotingPower] = useState(null);
   const [proposals, setProposals] = useState([]);
   const [proposalId, setProposalId] = useState(-1);
@@ -31,7 +31,7 @@ export default function Dao() {
 
   const connectWallet = async () => {
     const accounts = await provider.send('eth_requestAccounts', [])
-    const signer = provider.getSigner()
+    const signer = await provider.getSigner()
     setSigner(signer)
     setAddress(accounts[0])
     await fetchValues(signer);
@@ -40,10 +40,12 @@ export default function Dao() {
 
   const fetchValues = async (signer) => {
     const sdusd = new ethers.Contract(SDUSD_ADDRESS, SDUSD_ABI, signer)
-    const dao = new ethers.Contract(SDUSDAO_ADDRESS, DAO_ABI, signer)
-    const mintThresh = await sdusd.mintingThreshold()
-    const degThresh = await sdusd.degeadationThreshold()
-    const votes = await dao.getVotes(await signer.getAddress())
+    const dao = new ethers.Contract(SDUSDAO_ADDRESS, DAO_ABI, signer);
+    const blockNumber = await provider.getBlockNumber();
+    const mintThresh = await sdusd.getEthCollateralRatio(); // also known as mintingThreshold
+    const degThresh = await sdusd.getDegredationThreshold();
+    console.log("blockNumber : ", parseInt(blockNumber));
+    const votes = await dao.getVotes(await signer.getAddress(), blockNumber - 1);
     setMintingThreshold(mintThresh.toString())
     setDegeadationThreshold(degThresh.toString())
     setVotingPower(votes.toString())
@@ -127,7 +129,7 @@ export default function Dao() {
               <p>Connected as: {address}</p>
               <p>Voting Power: {votingPower}</p>
               <p>Minting Threshold: {mintingThreshold}</p>
-              <p>Degeadation Threshold: {degeadationThreshold}</p>
+              <p>Degeadation Threshold: {degredationThreshold}</p>
             </div>
           )}
         </div>
@@ -167,7 +169,7 @@ export default function Dao() {
               className="border p-1"
             >
               <option value="changeMintingThreshold">Change Minting Threshold</option>
-              <option value="changeDegradationThreshold">Change Degradation Threshold</option>
+              <option value="changeDegredationThreshold">Change Degradation Threshold</option>
             </select>
           </div>
           <input
