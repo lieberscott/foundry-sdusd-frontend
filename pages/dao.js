@@ -1,26 +1,41 @@
 import { useEffect, useState } from 'react'
-import { ethers } from 'ethers'
+import { ethers, Interface } from 'ethers'
 // import { Button } from '../components/ui/button'
 // import { Card, CardContent } from '../components/ui/card'
 import Link from 'next/link'
-import { SDUSD_ADDRESS, TIMELOCK_ADDRESS, SDUSDAO_ADDRESS } from '../utils'
+import { SDUSD_ADDRESS, SDNFT_ADDRESS, TIMELOCK_ADDRESS, SDUSDAO_ADDRESS } from '../utils'
 
 // Replace with your contract ABIs and addresses
-import SDUSD_ABI from '../abis/sdusdAbi.json'
-import TIMELOCK_ABI from '../abis/timelockAbi.json'
-import DAO_ABI from '../abis/sdusdaoAbi.json'
+import SDUSD_ABI from '../abis/sdusdAbi.json';
+import SDNFT_ABI from '../abis/sdnftAbi.json';
+import TIMELOCK_ABI from '../abis/timelockAbi.json';
+import DAO_ABI from '../abis/sdusdaoAbi.json';
+
+const stateMap = [
+  "Pending",
+  "Active",
+  "Canceled",
+  "Defeated",
+  "Succeeded",
+  "Queued",
+  "Expired",
+  "Executed"
+]
 
 export default function Dao() {
   const [provider, setProvider] = useState(null)
   const [signer, setSigner] = useState(null)
   const [address, setAddress] = useState(null)
   const [mintingThreshold, setMintingThreshold] = useState('')
-  const [degredationThreshold, setDegeadationThreshold] = useState('')
+  const [degredationThreshold, setDegredationThreshold] = useState('')
   const [votingPower, setVotingPower] = useState(null);
   const [proposals, setProposals] = useState([]);
-  const [proposalId, setProposalId] = useState(-1);
+  const [proposalId, setProposalId] = useState();
   const [functionType, setFunctionType] = useState("changeMintingThreshold");
   const [newThreshold, setNewThreshold] = useState(-1);
+  const [voteChoice, setVoteChoice] = useState(1);
+  const [delegateAddress, setDelegateAddress] = useState("");
+  const [delegateStatus, setDelegateStatus] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.ethereum) {
@@ -33,7 +48,8 @@ export default function Dao() {
     const accounts = await provider.send('eth_requestAccounts', [])
     const signer = await provider.getSigner()
     setSigner(signer)
-    setAddress(accounts[0])
+    setAddress(accounts[0]);
+    setDelegateAddress(accounts[0]);
     await fetchValues(signer);
     await fetchProposals(signer);
   }
@@ -47,42 +63,130 @@ export default function Dao() {
     console.log("blockNumber : ", parseInt(blockNumber));
     const votes = await dao.getVotes(await signer.getAddress(), blockNumber - 1);
     setMintingThreshold(mintThresh.toString())
-    setDegeadationThreshold(degThresh.toString())
+    setDegredationThreshold(degThresh.toString())
     setVotingPower(votes.toString())
   }
 
   const fetchProposals = async (signer) => {
-    const sdusdao = new ethers.Contract(SDUSDAO_ADDRESS, DAO_ABI, signer)
-    const count = await sdusdao.proposalCount?.() || 0
-    const loadedProposals = []
-    for (let i = 1; i <= count; i++) {
-      try {
-        const state = await sdusdao.state(i)
-        loadedProposals.push({ id: i, state })
-      } catch {}
-    }
+    const provider = signer.provider // get the provider from the signer
+    const currentBlock = await provider.getBlockNumber();
+
+    // connect contract with provider (not signer) to use queryFilter
+    const sdusdao = new ethers.Contract(SDUSDAO_ADDRESS, DAO_ABI, provider)
+
+    const filter = sdusdao.filters.ProposalCreated();
+    const events = await sdusdao.queryFilter(filter, 0, 'latest')
+
+    const loadedProposals = await Promise.all(
+      events.map(async (event) => {
+        const proposalId = event.args[0];
+        const proposer = event.args[1];
+        const targets = event.args[2];
+        const values = event.args[3];
+        const calldatas = event.args[5];
+        const startBlock = event.args[6];
+        const endBlock = event.args[7];
+        const description = event.args[8];
+
+        console.log("StartBlock : ", startBlock);
+        console.log("EndBlock : ", endBlock);
+
+        const startBlockNum = Number(startBlock) || 0;
+        const endBlockNum = Number(endBlock) || 0;
+
+        console.log("StartBlockNum : ", startBlockNum);
+        console.log("EndBlockNum : ", endBlockNum);
+
+        // fetch state using signer-connected contract
+        const sdusdaoWithSigner = sdusdao.connect(signer);
+        const state = await sdusdaoWithSigner.state(proposalId);
+
+        const stateNum = Number(state);
+
+        console.log("state : ", state);
+        console.log(typeof state);
+
+        let blocksRemaining = 0;
+        if (stateNum === 0) { // Pending
+          blocksRemaining = startBlockNum - currentBlock
+        } else if (stateNum === 1) { // Active
+          blocksRemaining = endBlockNum - currentBlock
+        }
+
+        return {
+          id: proposalId.toString(),
+          proposer,
+          targets,
+          calldatas,
+          values,
+          description,
+          state: stateNum,
+          startBlock: startBlockNum,
+          endBlock: endBlockNum,
+          blocksRemaining
+        }
+      })
+    )
+
     setProposals(loadedProposals)
   }
 
   const voteOnProposal = async () => {
-    const governor = new ethers.Contract(GOVERNOR_ADDRESS, GOVERNOR_ABI, signer)
-    const tx = await governor.castVote(proposalId, voteChoice)
-    await tx.wait()
-    alert('Vote cast!')
+    const governor = new ethers.Contract(SDUSDAO_ADDRESS, DAO_ABI, signer);
+    const tx = await governor.castVote(proposalId, voteChoice);
+    await tx.wait();
+    alert('Vote cast!');
   }
 
+  const handleDelegate = async () => {
+    try {
+      const sdusd = new ethers.Contract(SDUSD_ADDRESS, SDUSD_ABI, signer);
+      const sdnft = new ethers.Contract(SDNFT_ADDRESS, SDNFT_ABI, signer);
+
+      const finalDelegate = delegateAddress;
+
+      setDelegateStatus("Submitting delegation transaction...");
+
+      const tx1 = await sdusd.delegate(finalDelegate);
+      await tx1.wait();
+      const tx2 = await sdnft.delegate(finalDelegate);
+      await tx2.wait();
+
+      setDelegateStatus(`Delegated to ${finalDelegate} (will update after next block)`);
+    } catch (err) {
+      console.error(err);
+      setDelegateStatus("Error: " + (err.reason || err.message));
+    }
+  };
+  
+
   const propose = async () => {
-    const sdusdao = new ethers.Contract(SDUSDAO_ADDRESS, DAO_ABI, signer)
-    const iface = new ethers.utils.Interface(SDUSD_ABI)
-    const encodedFunction = iface.encodeFunctionData(functionType, [newThreshold])
-    const tx = await sdusdao.propose(
-      [SDUSD_ADDRESS],
-      [0],
-      [encodedFunction],
-      `Proposal to change ${functionType} to ${newThreshold}`
-    )
-    await tx.wait()
-    alert('Proposal submitted!')
+    try {
+      const sdusdao = new ethers.Contract(SDUSDAO_ADDRESS, DAO_ABI, signer);
+      const iface = new Interface(SDUSD_ABI);
+      const newThresholdInt = parseInt(newThreshold);
+      console.log(newThresholdInt);
+      const encodedFunction = iface.encodeFunctionData(functionType, [newThresholdInt]);
+
+      console.log(functionType) // Must be EXACTLY the function name in ABI: "changeMintingThreshold"
+      console.log(encodedFunction) // Should look like: 0xabcdef... with 64 trailing hex chars
+      console.log(SDUSD_ADDRESS);
+      console.log(SDUSDAO_ADDRESS);
+      const blockNumber = await provider.getBlockNumber();
+      const votingPower = await sdusdao.getVotes(await signer.getAddress(), blockNumber - 1);
+      console.log("Voting power:", votingPower.toString());
+      const tx = await sdusdao.propose(
+        [SDUSD_ADDRESS],
+        [0],
+        [encodedFunction],
+        `Proposal to change ${functionType} to ${newThreshold}`
+      )
+      await tx.wait()
+      alert('Proposal submitted!')
+    }
+    catch (err) {
+      console.error(err);
+    }
   }
 
 
@@ -129,25 +233,44 @@ export default function Dao() {
               <p>Connected as: {address}</p>
               <p>Voting Power: {votingPower}</p>
               <p>Minting Threshold: {mintingThreshold}</p>
-              <p>Degeadation Threshold: {degredationThreshold}</p>
+              <p>Degredation Threshold: {degredationThreshold}</p>
             </div>
           )}
         </div>
       </div>
+      <div className="p-4 bg-gray-100 rounded-xl shadow-md">
+      <h3 className="text-lg font-semibold mb-2">Delegate Your Votes</h3>
+      <p>You must delegate you voting stake, either to yourself or another address, before you can vote.</p>
+
+        <input
+          type="text"
+          placeholder={address}
+          value={delegateAddress}
+          onChange={(e) => setDelegateAddress(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded mb-3"
+        />
+
+        <button
+          onClick={handleDelegate}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+        >
+          Delegate
+        </button>
+
+        {delegateStatus && (
+          <p className="mt-3 text-sm text-gray-700">{delegateStatus}</p>
+        )}
+      </div>
 
       <div className="flex gap-4">
           <div className="border rounded p-4 shadow mb-4">
-            <h2 className="text-lg font-semibold mb-2">Proposals</h2>
-              {proposals.map((p) => (
-                <div key={p.id} className="mb-2">
-                  <p>Proposal ID: {p.id}</p>
-                  <p>Status: {p.state}</p>
-                </div>
-              ))}
-              <div className="mt-4">
+            <h2 className="text-lg font-semibold mb-2">Vote on proposals</h2>
+            <p>Proposals can be voted on starting 1 week after being proposed</p>
+            <p>Must have a minimum of 10,000 voting power to submit a proposal</p>
+            <div className="mt-4">
               <input
                 type="number"
-                placeholder="Proposal ID"
+                placeholder="Enter proposal ID"
                 value={proposalId || ''}
                 onChange={(e) => setProposalId(e.target.value)}
                 className="border p-1 mr-2"
@@ -159,6 +282,21 @@ export default function Dao() {
               </select>
               <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={voteOnProposal}>Vote</button>
             </div>
+              {proposals.map((p) => (
+                <div key={p.id} style={{ borderBottom: '1px solid #ccc', padding: '16px 0' }}>
+                  <p><strong>Proposal ID:</strong> {p.id}</p>
+                  <p><strong>Proposer:</strong> {p.proposer}</p>
+                  <p><strong>Value:</strong> {p.values?.join(", ") || "0"}</p>
+                  <p><strong>Description:</strong> {p.description}</p>
+                  <p><strong>Status:</strong> {stateMap[p.state]}</p>
+                  {(p.state === 0 || p.state === 1) && (
+                    <p>
+                      ⏳ {p.blocksRemaining} blocks remaining until{" "}
+                      {p.state === 0 ? "Active" : "Voting Ends"}
+                    </p>
+                  )}
+                </div>
+              ))}
           </div>
          <div className="border rounded p-4 shadow mb-4">
           <h2 className="text-lg font-semibold mb-2">Create Proposal</h2>

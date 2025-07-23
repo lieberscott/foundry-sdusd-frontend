@@ -2199,8 +2199,10 @@ export default function SDUSDApp() {
     let ethAmount = amount;
 
     if (!showMintAmountInEth) {
-      ethAmount = amount / ethPrice;
+      ethAmount = parseInt(amount) / parseInt(ethPrice);
     }
+
+    ethAmount = ethAmount.toString();
 
     try {
       const gasEstimate = await sdusdContract.mintSDUSD.estimateGas({ value: ethers.parseEther(ethAmount) });
@@ -2218,6 +2220,7 @@ export default function SDUSDApp() {
     if (!sdusdContract || !signer) return alert("Contract not loaded!");
     console.log("amount :", amount);
     try {
+      console.log(await sdusdContract.totalSupply());
       const parsedAmount = ethers.parseUnits(amount, 18);
       const gasEstimate = await sdusdContract.redeemSdusdForEth.estimateGas(parsedAmount);
       const tx = await sdusdContract.redeemSdusdForEth(parsedAmount, { gasLimit: gasEstimate });
