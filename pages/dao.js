@@ -3,7 +3,8 @@ import { ethers, Interface } from 'ethers'
 // import { Button } from '../components/ui/button'
 // import { Card, CardContent } from '../components/ui/card'
 import Link from 'next/link'
-import { SDUSD_ADDRESS, SDNFT_ADDRESS, TIMELOCK_ADDRESS, SDUSDAO_ADDRESS } from '../utils'
+import { SDUSD_ADDRESS, SDNFT_ADDRESS, TIMELOCK_ADDRESS, SDUSDAO_ADDRESS } from '../utils';
+
 
 // Replace with your contract ABIs and addresses
 import SDUSD_ABI from '../abis/sdusdAbi.json';
@@ -221,11 +222,11 @@ export default function Dao() {
   }
 
   return (
-    <main className="p-4 max-w-3xl mx-auto">
+    <main style={{ padding: '1rem', maxWidth: '48rem', margin: '0 auto' }}>
       <Link href="/">Home</Link>
-      <div className="mb-4">
+      <div style={{ marginBottom: '1rem' }}>
         <div>
-          <h1 className="text-xl font-bold mb-2">SDUSD DAO Dashboard</h1>
+          <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>SDUSD DAO Dashboard</h1>
           {!address ? (
             <button onClick={connectWallet}>Connect Wallet</button>
           ) : (
@@ -238,73 +239,139 @@ export default function Dao() {
           )}
         </div>
       </div>
-      <div className="p-4 bg-gray-100 rounded-xl shadow-md">
-      <h3 className="text-lg font-semibold mb-2">Delegate Your Votes</h3>
-      <p>You must delegate you voting stake, either to yourself or another address, before you can vote.</p>
+
+      <div
+        style={{
+          padding: '1rem',
+          backgroundColor: '#f3f4f6',
+          borderRadius: '0.75rem',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+          marginBottom: '1rem',
+        }}
+      >
+        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '0.5rem' }}>Delegate Your Votes</h3>
+        <p>You must delegate your voting stake, either to yourself or another address, before you can vote.</p>
 
         <input
           type="text"
           placeholder={address}
           value={delegateAddress}
           onChange={(e) => setDelegateAddress(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded mb-3"
+          style={{
+            width: '100%',
+            padding: '0.5rem',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.375rem',
+            marginBottom: '0.75rem',
+          }}
         />
 
         <button
           onClick={handleDelegate}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+          style={{
+            backgroundColor: '#2563eb',
+            color: 'white',
+            padding: '0.5rem 1rem',
+            borderRadius: '0.375rem',
+            transition: 'background-color 0.2s ease',
+          }}
         >
           Delegate
         </button>
 
         {delegateStatus && (
-          <p className="mt-3 text-sm text-gray-700">{delegateStatus}</p>
+          <p style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>{delegateStatus}</p>
         )}
       </div>
 
-      <div className="flex gap-4">
-          <div className="border rounded p-4 shadow mb-4">
-            <h2 className="text-lg font-semibold mb-2">Vote on proposals</h2>
-            <p>Proposals can be voted on starting 1 week after being proposed</p>
-            <p>Must have a minimum of 10,000 voting power to submit a proposal</p>
-            <div className="mt-4">
-              <input
-                type="number"
-                placeholder="Enter proposal ID"
-                value={proposalId || ''}
-                onChange={(e) => setProposalId(e.target.value)}
-                className="border p-1 mr-2"
-              />
-              <select onChange={(e) => setVoteChoice(Number(e.target.value))} className="border p-1 mr-2">
-                <option value={1}>For</option>
-                <option value={0}>Against</option>
-                <option value={2}>Abstain</option>
-              </select>
-              <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={voteOnProposal}>Vote</button>
-            </div>
-              {proposals.map((p) => (
-                <div key={p.id} style={{ borderBottom: '1px solid #ccc', padding: '16px 0' }}>
-                  <p><strong>Proposal ID:</strong> {p.id}</p>
-                  <p><strong>Proposer:</strong> {p.proposer}</p>
-                  <p><strong>Value:</strong> {p.values?.join(", ") || "0"}</p>
-                  <p><strong>Description:</strong> {p.description}</p>
-                  <p><strong>Status:</strong> {stateMap[p.state]}</p>
-                  {(p.state === 0 || p.state === 1) && (
-                    <p>
-                      ⏳ {p.blocksRemaining} blocks remaining until{" "}
-                      {p.state === 0 ? "Active" : "Voting Ends"}
-                    </p>
-                  )}
-                </div>
-              ))}
+      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+        <div
+          style={{
+            border: '1px solid #e5e7eb',
+            borderRadius: '0.375rem',
+            padding: '1rem',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            marginBottom: '1rem',
+            flex: 1,
+            minWidth: '300px',
+          }}
+        >
+          <h2 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '0.5rem' }}>Vote on proposals</h2>
+          <p>Proposals can be voted on starting 1 week after being proposed</p>
+          <p>Must have a minimum of 10,000 voting power to submit a proposal</p>
+          <div style={{ marginTop: '1rem' }}>
+            <input
+              type="number"
+              placeholder="Enter proposal ID"
+              value={proposalId || ''}
+              onChange={(e) => setProposalId(e.target.value)}
+              style={{ border: '1px solid #d1d5db', padding: '0.25rem', marginRight: '0.5rem' }}
+            />
+            <select
+              onChange={(e) => setVoteChoice(Number(e.target.value))}
+              style={{ border: '1px solid #d1d5db', padding: '0.25rem', marginRight: '0.5rem' }}
+            >
+              <option value={1}>For</option>
+              <option value={0}>Against</option>
+              <option value={2}>Abstain</option>
+            </select>
+            <button
+              onClick={voteOnProposal}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#16a34a',
+                color: 'white',
+                borderRadius: '0.375rem',
+              }}
+            >
+              Vote
+            </button>
           </div>
-         <div className="border rounded p-4 shadow mb-4">
-          <h2 className="text-lg font-semibold mb-2">Create Proposal</h2>
-          <div className="mb-2">
+
+          {proposals.map((p) => (
+            <div key={p.id} style={{ borderBottom: '1px solid #ccc', padding: '16px 0' }}>
+              <p>
+                <strong>Proposal ID:</strong> {p.id}
+              </p>
+              <p>
+                <strong>Proposer:</strong> {p.proposer}
+              </p>
+              <p>
+                <strong>Value:</strong> {p.values?.join(', ') || '0'}
+              </p>
+              <p>
+                <strong>Description:</strong> {p.description}
+              </p>
+              <p>
+                <strong>Status:</strong> {stateMap[p.state]}
+              </p>
+              {(p.state === 0 || p.state === 1) && (
+                <p>
+                  ⏳ {p.blocksRemaining} blocks remaining until{' '}
+                  {p.state === 0 ? 'Active' : 'Voting Ends'}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div
+          style={{
+            border: '1px solid #e5e7eb',
+            borderRadius: '0.375rem',
+            padding: '1rem',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            marginBottom: '1rem',
+            flex: 1,
+            minWidth: '300px',
+          }}
+        >
+          <h2 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '0.5rem' }}>Create Proposal</h2>
+          <div style={{ marginBottom: '0.5rem' }}>
             <select
               value={functionType}
               onChange={(e) => setFunctionType(e.target.value)}
-              className="border p-1"
+              style={{ border: '1px solid #d1d5db', padding: '0.25rem' }}
             >
               <option value="changeMintingThreshold">Change Minting Threshold</option>
               <option value="changeDegredationThreshold">Change Degradation Threshold</option>
@@ -315,11 +382,43 @@ export default function Dao() {
             placeholder="New value"
             value={newThreshold}
             onChange={(e) => setNewThreshold(e.target.value)}
-            className="border p-1 mr-2"
+            style={{ border: '1px solid #d1d5db', padding: '0.25rem', marginRight: '0.5rem' }}
           />
-          <button onClick={propose} className="px-4 py-2 bg-blue-600 text-white rounded mr-2">Submit Proposal</button>
-          <button onClick={queueProposal} className="px-4 py-2 bg-yellow-600 text-white rounded mr-2">Queue</button>
-          <button onClick={executeProposal} className="px-4 py-2 bg-green-700 text-white rounded">Execute</button>
+          <button
+            onClick={propose}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#2563eb',
+              color: 'white',
+              borderRadius: '0.375rem',
+              marginRight: '0.5rem',
+            }}
+          >
+            Submit Proposal
+          </button>
+          <button
+            onClick={queueProposal}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#ca8a04',
+              color: 'white',
+              borderRadius: '0.375rem',
+              marginRight: '0.5rem',
+            }}
+          >
+            Queue
+          </button>
+          <button
+            onClick={executeProposal}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#15803d',
+              color: 'white',
+              borderRadius: '0.375rem',
+            }}
+          >
+            Execute
+          </button>
         </div>
       </div>
     </main>

@@ -19,6 +19,7 @@ export default function SDUSDApp() {
   const [sdusdMintable, setSDUSDMintable] = useState("0");
   const [nftSupply, setNFTSupply] = useState("0");
   const [showMintAmountInEth, setShowMintAmountInEth] = useState(true);
+  const [degradationThreshold, setDegradationThreshold] = useState(150);
 
   const SDUSD_CONTRACT_ADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
   const SDNFT_CONTRACT_ADDRESS = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9";
@@ -2157,15 +2158,18 @@ export default function SDUSDApp() {
         const ethBalanceOfUser = await provider.getBalance(signer);
         const maxMintable = await sdusdContract.calculateMaxMintable(ethBalanceOfSdusdContract);
         const sdusdSupply = await sdusdContract.totalSupply();
+        const currentDegThreshold = await sdusdContract.getDegredationThreshold();
         const priceOfEth = parseInt(ethers.formatUnits(maxMintable[1], 18));
         const maxMintableInEthInt = parseFloat(ethers.formatUnits(maxMintable[0], 18))
         const maxSdusd = priceOfEth * maxMintableInEthInt;
+        const currentDegThresholdNum = parseFloat(ethers.formatUnits(currentDegThreshold, 2));
         setEthBalanceOfUser(ethers.formatUnits(ethBalanceOfUser, 18));
         setSupplyOfSdusd(sdusdSupply);
         setEthPrice(priceOfEth);
         setEthBalanceOfSdusdContract(ethers.formatUnits(ethBalanceOfSdusdContract, 18));
         setSDUSDMintableInEth(ethers.formatUnits(maxMintable[0], 18));
         setSDUSDMintable(maxSdusd);
+        setDegradationThreshold(currentDegThresholdNum);
       }
   
       if (sdnftContract) {
@@ -2322,7 +2326,7 @@ export default function SDUSDApp() {
 
           <h3>To vote in the DAO, click <Link href="/dao">here</Link></h3>
           <p>Please note: SDUSD depegs by design during extreme market conditions!</p>
-          <p>Click <Link href={{pathname: "/redemption", query: {ethPrice, ethBalanceOfSdusdContract, supplyOfSdusd }}}>here</Link> to see how the redemption rate is calculated.</p>
+          <p>Click <Link href={{pathname: "/redemption", query: {ethPrice, ethBalanceOfSdusdContract, supplyOfSdusd, degradationThreshold }}}>here</Link> to see how the redemption rate is calculated.</p>
           <p>Current redemption rate: </p>
 
         </div>

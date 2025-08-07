@@ -6,14 +6,14 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 export function LineChart(props) {
 
-    const { ethPrice, ethBalanceOfSdusdContract, supplyOfSdusd } = props;
+    const { ethPrice, ethBalanceOfSdusdContract, supplyOfSdusd, degradationThreshold } = props;
 
     const [params, setParams] = useState({
-        sdusdBeingRedeemed: 1000,
-        degredationThreshold: 1.5,
-        sdusdTotalSupply: 500000,
-        priceOfEth: 2000,
-        ethInSdusdContract: 1000
+        sdusdBeingRedeemed: 100,
+        degredationThreshold: degradationThreshold,
+        sdusdTotalSupply: supplyOfSdusd,
+        priceOfEth: ethPrice,
+        ethInSdusdContract: ethBalanceOfSdusdContract
     });
     const [userAdjustedCollateralRatio, setUserAdjustedCollateralRatio] = useState(1);
 
@@ -49,9 +49,9 @@ export function LineChart(props) {
     const redemptionRates = pValues.map(p => calculateR(redemptionParams.sdusdBeingRedeemed, redemptionParams.degredationThreshold, redemptionParams.sdusdTotalSupply, p, redemptionParams.ethInSdusdContract));
     const xAxisValues = redemptionRates.map((r, i) => parseFloat(calculateCollateralRatio(redemptionParams.sdusdBeingRedeemed, redemptionParams.sdusdTotalSupply, pValues[i], redemptionParams.ethInSdusdContract, r)).toFixed(2));
 
-
+    const currentRedemptionRate = calculateR(1, degradationThreshold, supplyOfSdusd, ethPrice, ethBalanceOfSdusdContract);
     const currentCollateralRatio = calculateCollateralRatio(0, supplyOfSdusd == 0 ? 1 : supplyOfSdusd, ethPrice, parseFloat(ethBalanceOfSdusdContract), 0);
-
+    const ethPriceAtDepeg = (degradationThreshold * sdusdTotalSupply) / ethBalanceOfSdusdContract;
 
     const data = {
         labels: xAxisValues,
@@ -124,16 +124,10 @@ export function LineChart(props) {
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <h2>Redemption rate of SDUSD based on collateral ratio</h2>
-            <div>
-              SDUSD <b>may depeg by design during times of extreme market drawdowns</b>.<br/>
-              This occurs when the ETH amount in the SDUSD contract falls below a given threshold in relation to the amount of SDUSD minted. As deployed, this threshold is 150%.<br/>
-              However:<br/>
-              <ul>If the redemption rate falls below 1:1, it means the price of ETH has dropped massively, at least 60%+, and usually much higher (the exact percentage drop depends on how much SDUSD is minted)</ul>
-              <ul>If a depeg occurs, on the way down, SDUSD will lose value <b>slower</b> than ETH</ul>
-              <ul>Check the chart below. It shows the redemption rate given certain values.</ul>
-            </div>
-            <p>Collateral ratio is: (dollar value of ETH in SDUSD contract) / (SDUSD minted)</p>
-            <p><b>Current collateral ratio: {currentCollateralRatio}</b></p>
+            <p><b>Current collateral ratio of SDUSD: {currentCollateralRatio}</b> (Depeg occurs when the collateral ratio drops below 1.5)</p>
+            <p>Current redemption rate: { currentRedemptionRate }</p>
+            { currentRedemptionRate >= 1 ? <p>ETH would have to drop to {ethPriceAtDepeg} before a depeg occurs.</p>:
+            <p>ETH will have to rise to {ethPriceAtDepeg} before a repeg (1:1 redemption) resumes.</p> }
             <Line data={data} options={options} />
             <div>
               <p>
