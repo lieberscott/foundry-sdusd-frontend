@@ -2260,6 +2260,9 @@ export default function SDUSDApp() {
     }
   };
 
+  console.log("degradationThreshold : ", degradationThreshold);
+  console.log("supplyOfSdusd : ", supplyOfSdusd);
+
   return (
     <div className="p-4 max-w-lg mx-auto">
       <h1 className="text-2xl font-bold">SDUSD DApp</h1>
@@ -2326,7 +2329,7 @@ export default function SDUSDApp() {
 
           <h3>To vote in the DAO, click <Link href="/dao">here</Link></h3>
           <p>Please note: SDUSD depegs by design during extreme market conditions!</p>
-          <p>Click <Link href={{pathname: "/redemption", query: {ethPrice, ethBalanceOfSdusdContract, supplyOfSdusd, degradationThreshold }}}>here</Link> to see how the redemption rate is calculated.</p>
+          <p>Click <Link href={{pathname: "/redemption", query: {ethPrice, ethBalanceOfSdusdContract, supplyOfSdusd: parseInt(ethers.formatUnits(supplyOfSdusd, 18)), degradationThreshold }}}>here</Link> to see how the redemption rate is calculated.</p>
           <p>Current redemption rate: </p>
 
         </div>

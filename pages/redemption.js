@@ -10,11 +10,11 @@ import { useRouter } from 'next/router';
 export default function Redemption() {
 
   const router = useRouter();
-  const { ethPrice, ethBalanceOfSdusdContract, supplyOfSdusd } = router.query;
+  const { ethPrice, ethBalanceOfSdusdContract, supplyOfSdusd, degradationThreshold } = router.query;
 
   return (
     <div>
       <Link href="/">Home</Link>
-      <LineChart ethPrice={ethPrice} supplyOfSdusd={supplyOfSdusd} ethBalanceOfSdusdContract={ ethBalanceOfSdusdContract } />
+      <LineChart ethPrice={ethPrice} supplyOfSdusd={supplyOfSdusd} degradationThreshold={ degradationThreshold } ethBalanceOfSdusdContract={ ethBalanceOfSdusdContract } />
     </div>);
 }

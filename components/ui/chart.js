@@ -8,6 +8,8 @@ export function LineChart(props) {
 
     const { ethPrice, ethBalanceOfSdusdContract, supplyOfSdusd, degradationThreshold } = props;
 
+    console.log("props : ", props);
+
     const [params, setParams] = useState({
         sdusdBeingRedeemed: 100,
         degredationThreshold: degradationThreshold,
@@ -51,13 +53,16 @@ export function LineChart(props) {
 
     const currentRedemptionRate = calculateR(1, degradationThreshold, supplyOfSdusd, ethPrice, ethBalanceOfSdusdContract);
     const currentCollateralRatio = calculateCollateralRatio(0, supplyOfSdusd == 0 ? 1 : supplyOfSdusd, ethPrice, parseFloat(ethBalanceOfSdusdContract), 0);
-    const ethPriceAtDepeg = (degradationThreshold * sdusdTotalSupply) / ethBalanceOfSdusdContract;
-
+    const ethPriceAtDepeg = Number(degradationThreshold) * Number(supplyOfSdusd) / Number(ethBalanceOfSdusdContract);
+    console.log("degradationThreshold : ", degradationThreshold);
+    console.log("supplyOfSdusd : ", supplyOfSdusd);
+    console.log("ethBalanceOfSdusdContrac : ", ethBalanceOfSdusdContract);
+    console.log("ethPrice : ", ethPrice);
     const data = {
         labels: xAxisValues,
         datasets: [
             {
-                label: "r Value",
+                label: "Redemption rate",
                 data: redemptionRates,
                 borderColor: "#007bff",
                 backgroundColor: "rgba(0, 123, 255, 0.5)",
@@ -97,7 +102,7 @@ export function LineChart(props) {
           x: {
             title: {
               display: true,
-              text: "Collateral ratio",
+              text: `Collateral ratio`,
             },
               grid: {
                   drawOnChartArea: false,
@@ -124,10 +129,11 @@ export function LineChart(props) {
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <h2>Redemption rate of SDUSD based on collateral ratio</h2>
-            <p><b>Current collateral ratio of SDUSD: {currentCollateralRatio}</b> (Depeg occurs when the collateral ratio drops below 1.5)</p>
-            <p>Current redemption rate: { currentRedemptionRate }</p>
-            { currentRedemptionRate >= 1 ? <p>ETH would have to drop to {ethPriceAtDepeg} before a depeg occurs.</p>:
-            <p>ETH will have to rise to {ethPriceAtDepeg} before a repeg (1:1 redemption) resumes.</p> }
+            <p><b>Current collateral ratio of SDUSD: {currentCollateralRatio}</b> (Depeg occurs when the collateral ratio drops below {degradationThreshold})</p>
+            <p>Current redemption rate: { currentRedemptionRate }:1</p>
+            <p>Current ETH price: ${ ethPrice }</p>
+            { currentRedemptionRate >= 1 ? <p>ETH would have to drop to ${ethPriceAtDepeg.toFixed(2)} before a depeg occurs.</p>:
+            <p>ETH will have to rise to ${ethPriceAtDepeg.toFixed(2)} before a repeg (1:1 redemption) resumes.</p> }
             <Line data={data} options={options} />
             <div>
               <p>
